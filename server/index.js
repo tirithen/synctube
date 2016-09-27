@@ -1,11 +1,16 @@
-const httpServer = require('express')();
+const express = require('express');
+const httpServer = express();
+const bodyParser = require('body-parser');
 const server = require('http').createServer(httpServer);
 const socketServer = require('socket.io')(server);
+const youTubePlayList = require('youtube-playlist-info').playlistInfo;
 
+const youTubeApiKey = process.env.YOUTUBE_API_KEY;
 const httpPort = process.env.PORT || 3000;
 const channels = new Map();
 
 httpServer.use(express.static(`${__dirname}/../public`));
+httpServer.use(bodyParser.json({ type: 'application/json' }))
 server.listen(httpPort);
 
 class Channel {
@@ -13,10 +18,34 @@ class Channel {
 		this.id = id;
 		this.playlistId = playlistId;
 		this.socketNamespace = socketNamespace;
-		
+
 		this.confirmSecret = (secretTest) => {
 			return secretTest === secret;
 		};
+
+		this.setupPlaylistSync();
+		this.syncPlaylist();
+		this.setupSync();
+	}
+
+	syncPlaylist() {
+		youTubePlayList(youTubeApiKey, this.playlistId, (items) => {
+			console.log(items);
+		});
+	}
+
+	setupPlaylistSync() {
+		setInterval(() => {
+			this.syncPlaylist();
+		}, 1000 * 30);
+	}
+
+	setupSync() {
+		setInterval(() => {
+			if (this.currentVideo) {
+				this.socketNamespace.emit('sync', this.currentVideo);
+			}
+		}, 1000);
 	}
 
 	toJSON() {
@@ -52,19 +81,19 @@ httpServer.post('/api/:channel', (request, response) => {
 	const playlistId = request.body.playlistId;
 	const secret = request.body.secret;
 
-	const channel = channels.get(channelId);	
-	
+	const channel = channels.get(channelId);
+
 
 	if (channel) {
 		response.status(420).send('Channel already exists');
 	} else if (channelId && playlistId && secret) {
 		channels.set(channelId, new Channel(
-			channelId, 
-			playlistId, 
+			channelId,
+			playlistId,
 			secret,
-			socketServer.of('/)
+			socketServer.of(`/${channelId}`)
 		));
-	}	
+	}
 });
 
 httpServer.delete('/api/:channel', hasValidSecret, (request, response) => {
@@ -82,8 +111,4 @@ socketServer.on('connection', (socket) => {
 	socket.on('channel subscribe', (channel) => {
 		socket.channel = channels.get(channel);
 	});
-
-	setInterval(() => {
-					
-	}, 1000);
 });

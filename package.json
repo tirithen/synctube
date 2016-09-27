@@ -17,8 +17,10 @@
   },
   "homepage": "https://github.com/tirithen/synctube#readme",
   "dependencies": {
+    "body-parser": "^1.15.2",
     "express": "^4.14.0",
-    "socket.io": "^1.4.8"
+    "socket.io": "^1.4.8",
+    "youtube-playlist-info": "^0.1.0"
   },
   "devDependencies": {
     "istanbul": "^0.4.5",
