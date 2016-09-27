@@ -1,14 +1,36 @@
 const httpServer = require('express')();
+const server = require('http').createServer(httpServer);
+const socketServer = require('socket.io')(server);
 
 const httpPort = process.env.PORT || 3000;
 const channels = new Map();
-const channelSecrets = new Map();
+
+httpServer.use(express.static(`${__dirname}/../public`));
+server.listen(httpPort);
+
+class Channel {
+	constructor(id, playlistId, secret, socketNamespace) {
+		this.id = id;
+		this.playlistId = playlistId;
+		this.socketNamespace = socketNamespace;
+		
+		this.confirmSecret = (secretTest) => {
+			return secretTest === secret;
+		};
+	}
+
+	toJSON() {
+		return { id: this.id, playlistId: this.playlistId };
+	}
+}
 
 function hasValidSecret(request, response, next) {
 	const channelId = request.params.channel;
 	const secret = request.body.secret;
 
-	if (secret && secret === channelSecrets.get(channelId)) {
+	const channel = channels.get(channelId);
+
+	if (channel && channel.confirmSecret(secret)) {
 		next();
 	} else {
 		response.status(401).send('Invalid or missing secret');
@@ -36,8 +58,12 @@ httpServer.post('/api/:channel', (request, response) => {
 	if (channel) {
 		response.status(420).send('Channel already exists');
 	} else if (channelId && playlistId && secret) {
-		channels.set(channelId, { playlistId, id: channelId });
-		channelSecrets.set(channelId, secret);
+		channels.set(channelId, new Channel(
+			channelId, 
+			playlistId, 
+			secret,
+			socketServer.of('/)
+		));
 	}	
 });
 
@@ -52,4 +78,12 @@ httpServer.delete('/api/:channel', hasValidSecret, (request, response) => {
 	}
 });
 
-httpServer.listen(httpPort);
+socketServer.on('connection', (socket) => {
+	socket.on('channel subscribe', (channel) => {
+		socket.channel = channels.get(channel);
+	});
+
+	setInterval(() => {
+					
+	}, 1000);
+});
