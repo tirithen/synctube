@@ -4,7 +4,10 @@
   "description": "Play youtube videos syncronized to several clients",
   "main": "server/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rm -Rf ./build && ./node_modules/.bin/webpack -p --process --colors --content-base client/",
+    "start": "./node_modules/.bin/webpack-dev-server --process --colors --content-base client/",
+    "test": "npm run lint && ./node_modules/.bin/mocha --recursive --compilers js:babel-core/register",
+    "test-watch": "./node_modules/.bin/mocha --watch --growl --recursive --compilers js:babel-core/register"
   },
   "repository": {
     "type": "git",
@@ -18,14 +21,33 @@
   "homepage": "https://github.com/tirithen/synctube#readme",
   "dependencies": {
     "body-parser": "^1.15.2",
+    "browser-request": "^0.3.3",
     "express": "^4.14.0",
+    "html-webpack-plugin": "^2.22.0",
+    "parse-duration": "^0.1.1",
+    "promised-cache": "^1.0.3",
+    "request": "^2.75.0",
     "socket.io": "^1.4.8",
-    "youtube-playlist-info": "^0.1.0"
+    "socket.io-client": "^1.4.8",
+    "webpack-notifier": "^1.4.1"
   },
   "devDependencies": {
+    "autoprefixer-loader": "^3.2.0",
+    "babel": "^6.5.2",
+    "babel-loader": "^6.2.5",
+    "babel-plugin-transform-es2015-destructuring": "^6.9.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
+    "babel-plugin-transform-es2015-parameters": "^6.11.4",
+    "babel-preset-es2015": "^6.14.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "css-loader": "^0.23.1",
     "istanbul": "^0.4.5",
+    "less": "^2.7.1",
+    "less-loader": "^2.2.3",
     "mocha": "^3.0.2",
-    "webpack": "^1.13.2",
+    "style-loader": "^0.13.1",
+    "webpack": "^1.12.8",
+    "webpack-dev-server": "^1.16.1",
     "youtube-player": "^3.0.4"
   }
 }
