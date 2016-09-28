@@ -47,7 +47,7 @@ httpServer.post('/api/:channel', (request, response) => {
 
 
   if (channel) {
-    response.status(420).send('Channel already exists');
+    response.status(409).send('Channel already exists');
   } else if (channelId && playlistId && secret) {
     channels.set(channelId, new Channel(
       channelId,
@@ -57,6 +57,10 @@ httpServer.post('/api/:channel', (request, response) => {
     ));
 
     response.status(201).send();
+  } else {
+    response.status(400).send(
+      'Make sure that the manditory parameters playlistId and secret are passed'
+    );
   }
 });
 
