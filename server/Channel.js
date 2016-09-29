@@ -12,6 +12,7 @@ class Channel {
   setupSync() {
     setInterval(() => {
       const status = this.playlist.getCurrentVideoStatus();
+
       if (status) {
         this.socketNamespace.emit('sync', status);
       }
@@ -31,6 +32,14 @@ class Channel {
   setCurrentVideo(videoId) {
     this.playlist.setCurrentVideo(videoId);
     console.log(`Set video ${videoId} on channel ${this.id}`);
+  }
+
+  getCurrentVideoStatus() {
+    return this.playlist.getCurrentVideoStatus();
+  }
+
+  setCurrentVideoRemaining(remaining) {
+    this.playlist.setCurrentVideoRemaining(remaining);
   }
 
   toJSON() {

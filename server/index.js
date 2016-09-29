@@ -15,26 +15,55 @@ const channels = new Map();
 const Channel = require('./Channel');
 const YoutubePlaylist = require('./YoutubePlaylist');
 
-const channelsCache = new Cache('cache/channelsCache', 1000 * 3600 * 30);
+const channelsCache = new Cache('cache/channels', 1000 * 3600 * 30);
 channelsCache.get('channels').then((cachedChannels) => {
+  const numberOfChannels = cachedChannels && cachedChannels.length ?
+                              cachedChannels.length : 0;
+
+  console.log(`Found ${numberOfChannels} channels in cache`);
+
   if (cachedChannels) {
     cachedChannels.forEach((cachedChannel) => {
-      const channel = new Channel(
-        cachedChannel.id,
-        new YoutubePlaylist(youTubeApiKey, cachedChannel.playlistId),
-        cachedChannel.secret,
-        socketServer.of(`/${cachedChannel.id}`)
-      );
-      channel.setCurrentVideo(cachedChannel.status.id);
-      channel.setCurrentVideoRemaining(cachedChannel.status.remaining);
-      if (cachedChannel.status.playing) {
-        channel.play();
-      }
+      try {
+        const channel = new Channel(
+          cachedChannel.id,
+          new YoutubePlaylist(youTubeApiKey, cachedChannel.playlistId),
+          cachedChannel.secret,
+          socketServer.of(`/${cachedChannel.id}`)
+        );
 
-      channels.set(cachedChannel.id, channel);
+        if (cachedChannel.status) {
+          channel.setCurrentVideo(cachedChannel.status.id);
+          channel.setCurrentVideoRemaining(cachedChannel.status.remaining);
+          if (cachedChannel.status.playing) {
+            channel.play();
+          }
+        }
+
+        channels.set(cachedChannel.id, channel);
+      } catch (error) {
+        console.error(error);
+      }
     });
   }
 });
+
+function saveChannelsToCache() {
+  const channelsCacheData = [];
+
+  channels.forEach((channel) => {
+    channelsCacheData.push({
+      id: channel.id,
+      playlistId: channel.playlist.id,
+      secret: channel.secret,
+      status: channel.getCurrentVideoStatus()
+    });
+  });
+
+  return channelsCache.set('channels', channelsCacheData);
+}
+
+setInterval(saveChannelsToCache, 10 * 1000);
 
 httpServer.use(express.static(`${__dirname}/../build`));
 const jsonOptions = {
@@ -82,7 +111,7 @@ httpServer.post('/api/:channel', (request, response) => {
       socketServer.of(`/${channelId}`)
     ));
 
-    response.status(201).send();
+    response.status(200).send();
   } else {
     response.status(400).send(
       'Make sure that the manditory parameters playlistId and secret are passed'
@@ -128,18 +157,7 @@ httpServer.delete('/api/:channel', hasValidSecret, (request, response) => {
 });
 
 function exitHandler(exitCode, error) {
-  const channelsCacheData = [];
-
-  channels.forEach((channel) => {
-    channelsCacheData.push({
-      id: channel.id,
-      playlistId: channel.playlist.id,
-      secret: channel.secret,
-      status: channel.getCurrentVideoStatus()
-    });
-  });
-
-  channelsCache.set('channels', channelsCacheData).then(() => {
+  saveChannelsToCache().then(() => {
     if (error) {
       console.error(error.stack);
     }

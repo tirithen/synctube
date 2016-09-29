@@ -5,7 +5,13 @@ class Timer {
   }
 
   getRemaining() {
-    return this.remaining - Date.now() - this.started;
+    return this.remaining - (Date.now() - this.started);
+  }
+
+  setRemaining(remaining) {
+    this.pause();
+    this.remaining = remaining;
+    this.start();
   }
 
   start() {
@@ -18,7 +24,7 @@ class Timer {
         this.timer = setTimeout(() => {
           this.running = false;
           this.triggered = true;
-          this.timerPromise.resolve();
+          Promise.resolve(this.timerPromise);
         }, this.remaining);
       }
     }
@@ -41,17 +47,17 @@ class Timer {
     delete this.started;
     delete this.triggered;
     if (this.timerPromise) {
-      this.timerPromise.reject();
+      Promise.reject(this.timerPromise);
     }
-    this.timerPromise = new Promise();
+    this.timerPromise = new Promise(() => {});
   }
 
   destroy() {
     this.running = true;
     this.pause();
-    this.timerPromise.reject();
+    Promise.reject(this.timerPromise);
     this.reset();
-    this.timerPromise.reject();
+    Promise.reject(this.timerPromise);
   }
 }
 

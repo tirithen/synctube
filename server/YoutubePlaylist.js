@@ -10,7 +10,10 @@ class YoutubePlaylist {
     this.id = id;
     this.playlistSyncDuration = playlistSyncDuration;
     this.list = new Map();
-    this.cache = new Cache('cache/YouTubePlayList', this.playlistSyncDuration - 1000);
+    this.cache = new Cache(
+      'cache/YouTubePlayList',
+      this.playlistSyncDuration - 1000
+    );
     this.setupPlaylistSync();
     this.syncPlaylist();
   }
@@ -25,13 +28,13 @@ class YoutubePlaylist {
   }
 
   syncPlaylist() {
-    this.cache.get(this.id).then((result) => {
-      if (result) {
-        this.applyResult(result);
+    this.cache.get(this.id).then((cacheResult) => {
+    if (cacheResult) {
+        this.applyResult(cacheResult);
       } else {
-        this.fetchPlaylistInfo().then((result) => {
-          this.cache.set(this.id, result);
-          this.applyResult(result);
+        this.fetchPlaylistInfo().then((playlistResult) => {
+          this.cache.set(this.id, playlistResult);
+          this.applyResult(playlistResult);
         }, error => console.error(error));
       }
     });
@@ -39,17 +42,36 @@ class YoutubePlaylist {
 
   callYoutubeApi(url) {
     return new Promise((resolve, reject) => {
-      request(`https://www.googleapis.com/youtube/v3${url}&key=${this.apiKey}`, (error, response, body) => {
-        if (error) {
-          reject(error);
-        } else {
-          try {
-            resolve(JSON.parse(body));
-          } catch (parseError) {
-            reject(parseError);
+      request(
+        `https://www.googleapis.com/youtube/v3${url}&key=${this.apiKey}`,
+        (error, response, body) => {
+          if (error) {
+            console.error(error);
+            reject(error);
+          } else {
+            try {
+              const result = JSON.parse(body);
+
+              if (response.statusCode === 200) {
+                resolve(result);
+              } else if (
+                response.statusCode === 400 &&
+                result.error && result.error.errors &&
+                result.error.errors[0].reason === 'keyInvalid'
+              ) {
+                console.error(new Error('The Youtube key is invalid'));
+                reject(result);
+              } else {
+                console.error(new Error('Unknown error while making Youtube API call'));
+                reject(result);
+              }
+            } catch (parseError) {
+              console.error(parseError);
+              reject(parseError);
+            }
           }
         }
-      });
+      );
     });
   }
 
@@ -57,9 +79,10 @@ class YoutubePlaylist {
     const promises = [];
 
     promises.push(new Promise((resolve, reject) => {
-      const url = `/playlistItems?playlistId=${this.id}&part=contentDetails&maxResults=50`;
+      const url = `/playlistItems?playlistId=${this.id}` +
+                  '&part=contentDetails&maxResults=50';
       this.callYoutubeApi(url).then((result) => {
-        const videoIds = result.items.map(item => item.contentDetails.videoId)
+        const videoIds = result.items.map(item => item.contentDetails.videoId);
         this.fetchPlaylistVideoDetails(videoIds).then(resolve, reject);
       }, reject);
     }));
@@ -201,6 +224,12 @@ class YoutubePlaylist {
     }
 
     return result;
+  }
+
+  setCurrentVideoRemaining(remaining) {
+    if (this.currentVideoTimer) {
+      this.currentVideoTimer.setRemaining(remaining);
+    }
   }
 
   toJSON() {
