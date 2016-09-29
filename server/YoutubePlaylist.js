@@ -89,7 +89,8 @@ class YoutubePlaylist {
 
   fetchPlaylistVideoDetails(videoIds) {
     return new Promise((resolve, reject) => {
-      const url = `/videos?id=${videoIds.join(',')}&part=contentDetails,snippet&maxResults=50`;
+      const url = `/videos?id=${videoIds.join(',')}` +
+                  '&part=contentDetails,snippet&maxResults=50';
       this.callYoutubeApi(url).then((result) => {
         resolve(result.items.map((video) => {
           return {
@@ -120,7 +121,7 @@ class YoutubePlaylist {
             result = video;
           }
 
-          if(video.id === videoId) {
+          if (video.id === videoId) {
             setNext = true;
           }
         }
@@ -158,6 +159,7 @@ class YoutubePlaylist {
           this.pause();
           this.play();
         });
+        this.playing = true;
       }
     }
   }
@@ -183,10 +185,18 @@ class YoutubePlaylist {
   getCurrentVideoStatus() {
     let result;
 
-    if (this.currentVideo) {
+    if (this.list.has(this.currentVideo)) {
+      const video = this.list.get(this.currentVideo);
+      const timer = this.currentVideoTimer;
+      const remaining = timer ? timer.getRemaining() : video.duration;
+
       result = {
-        id: this.currentVideo,
-        remaining: this.currentVideoTimer ? this.currentVideoTimer.getRemaining() : undefined
+        id: video.id,
+        title: video.title,
+        remaining,
+        time: video.duration - remaining,
+        duration: video.duration,
+        playing: this.playing
       };
     }
 

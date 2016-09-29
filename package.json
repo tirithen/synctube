@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "build": "rm -Rf ./build && ./node_modules/.bin/webpack -p --process --colors --content-base client/",
-    "start": "./node_modules/.bin/webpack-dev-server --process --colors --content-base client/",
+    "dev": "./node_modules/.bin/webpack-dev-server --process --colors --content-base client/",
     "test": "npm run lint && ./node_modules/.bin/mocha --recursive --compilers js:babel-core/register",
     "test-watch": "./node_modules/.bin/mocha --watch --growl --recursive --compilers js:babel-core/register"
   },
@@ -29,11 +29,13 @@
     "request": "^2.75.0",
     "socket.io": "^1.4.8",
     "socket.io-client": "^1.4.8",
-    "webpack-notifier": "^1.4.1"
+    "webpack-notifier": "^1.4.1",
+    "youtube-player": "^3.0.4"
   },
   "devDependencies": {
     "autoprefixer-loader": "^3.2.0",
     "babel": "^6.5.2",
+    "babel-core": "^6.16.0",
     "babel-loader": "^6.2.5",
     "babel-plugin-transform-es2015-destructuring": "^6.9.0",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
@@ -47,7 +49,6 @@
     "mocha": "^3.0.2",
     "style-loader": "^0.13.1",
     "webpack": "^1.12.8",
-    "webpack-dev-server": "^1.16.1",
-    "youtube-player": "^3.0.4"
+    "webpack-dev-server": "^1.16.1"
   }
 }

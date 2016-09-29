@@ -2,8 +2,9 @@
 
 const io = require('socket.io-client');
 const request = require('browser-request');
+const youTubePlayer = require('youtube-player');
 
-console.log('io',io);
+console.log('io', io);
 
 const channelField = document.getElementById('channel-id');
 const channelSecretField = document.getElementById('channel-secret');
@@ -16,6 +17,9 @@ channelSecretField.style.display = 'none';
 channelYoutubeField.style.display = 'none';
 createChannelButton.style.display = 'none';
 
+const player = youTubePlayer('player');
+player.setVolume(100);
+
 let channel = location.hash.replace('#', '') || localStorage.getItem('channel');
 localStorage.setItem('channel', channel);
 
@@ -23,6 +27,13 @@ function subscribeToChannel() {
   const socket = io(`/${channel}`);
   socket.on('sync', (currentVideo) => {
     console.log('sync data', currentVideo);
+    player.loadVideoById(currentVideo.id);
+    player.seekTo(currentVideo.time, true);
+    if (currentVideo.playing) {
+      player.playVideo();
+    } else {
+      player.stopVideo();
+    }
   });
 }
 
@@ -35,7 +46,8 @@ channelField.addEventListener('change', () => {
     channelSecretField.style.display = '';
 
     if (response.status === 404) {
-      messageElement.innerHTML = 'The channel could not be found, fill in the details and click the button to create.';
+      messageElement.innerHTML = 'The channel could not be found, fill in ' +
+                                 'the details and click the button to create.';
       channelYoutubeField.style.display = '';
       createChannelButton.style.display = '';
       messageElement.style.display = '';
@@ -44,7 +56,8 @@ channelField.addEventListener('change', () => {
       messageElement.style.display = 'none';
       console.log('connected', body);
     } else {
-      messageElement.innerHTML = 'An unknown error has occurred, try again later.';
+      messageElement.innerHTML = 'An unknown error has occurred, ' +
+                                 'try again later.';
       createChannelButton.style.display = 'none';
       messageElement.style.display = '';
     }
@@ -82,13 +95,13 @@ createChannelButton.addEventListener('click', () => {
       channelYoutubeField.style.display = '';
       messageElement.style.display = '';
     } else {
-      messageElement.innerHTML = 'An unknown error has occurred, try again later.';
+      messageElement.innerHTML = 'An unknown error has occurred, ' +
+                                 'try again later.';
       channelYoutubeField.style.display = '';
       messageElement.style.display = '';
     }
   });
 });
-
 
 if (channel) {
   channelField.value = channel;
