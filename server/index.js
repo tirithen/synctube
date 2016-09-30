@@ -155,22 +155,3 @@ httpServer.delete('/api/:channel', hasValidSecret, (request, response) => {
     response.status(404).send('Not Found');
   }
 });
-
-function exitHandler(exitCode, error) {
-  saveChannelsToCache().then(() => {
-    if (error) {
-      console.error(error.stack);
-    }
-
-    process.exit(exitCode);
-  });
-}
-
-// Do something when app is closing
-process.on('exit', exitHandler.bind(undefined, 0));
-
-// Catches ctrl+c event
-process.on('SIGINT', exitHandler.bind(undefined, 1));
-
-// Catches uncaught exceptions
-process.on('uncaughtException', exitHandler.bind(undefined, 1));

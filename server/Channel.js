@@ -1,3 +1,5 @@
+const SYNC_INTERVAL = process.env.SYNC_INTERVAL || 5000;
+
 class Channel {
   constructor(id, playlist, secret, socketNamespace) {
     this.id = id;
@@ -16,7 +18,7 @@ class Channel {
       if (status) {
         this.socketNamespace.emit('sync', status);
       }
-    }, 1000);
+    }, SYNC_INTERVAL);
   }
 
   play() {

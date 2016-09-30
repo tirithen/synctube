@@ -29,7 +29,7 @@ class YoutubePlaylist {
 
   syncPlaylist() {
     this.cache.get(this.id).then((cacheResult) => {
-    if (cacheResult) {
+      if (cacheResult) {
         this.applyResult(cacheResult);
       } else {
         this.fetchPlaylistInfo().then((playlistResult) => {
@@ -172,16 +172,18 @@ class YoutubePlaylist {
     if (!this.playing) {
       const video = this.list.get(this.currentVideo);
       if (video) {
-        if (this.currentVideoTimer) {
-          this.currentVideoTimer.destroy();
+        if (!this.currentVideoTimer) {
+          this.currentVideoTimer = new Timer(video.duration);
+
+          this.currentVideoTimer.on('alarm', () => {
+            const nextVideo = this.getNextVideo(video.id);
+            this.setCurrentVideo(nextVideo ? nextVideo.id : undefined);
+            this.pause();
+            this.play();
+          });
         }
-        this.currentVideoTimer = new Timer(video.duration);
-        this.currentVideoTimer.start().then(() => {
-          const nextVideo = this.getNextVideo(video.id);
-          this.setCurrentVideo(nextVideo ? nextVideo.id : undefined);
-          this.pause();
-          this.play();
-        });
+
+        this.currentVideoTimer.start();
         this.playing = true;
       }
     }
@@ -202,6 +204,11 @@ class YoutubePlaylist {
       this.currentVideo = videoId;
     } else {
       delete this.currentVideo;
+    }
+
+    if (this.currentVideoTimer) {
+      this.currentVideoTimer.destroy();
+      delete this.currentVideoTimer;
     }
   }
 
