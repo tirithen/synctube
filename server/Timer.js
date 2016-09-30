@@ -24,7 +24,6 @@ class Timer {
         this.timer = setTimeout(() => {
           this.running = false;
           this.triggered = true;
-          Promise.resolve(this.timerPromise);
         }, this.remaining);
       }
     }
@@ -46,18 +45,22 @@ class Timer {
     delete this.running;
     delete this.started;
     delete this.triggered;
-    if (this.timerPromise) {
-      Promise.reject(this.timerPromise);
-    }
-    this.timerPromise = new Promise(() => {});
+    clearInterval(this.interval);
+    this.timerPromise = new Promise((resolve) => {
+      this.interval = setInterval(() => {
+        if (this.triggered) {
+          resolve();
+          clearInterval(this.interval);
+        }
+      }, 5);
+    });
   }
 
   destroy() {
     this.running = true;
     this.pause();
-    Promise.reject(this.timerPromise);
     this.reset();
-    Promise.reject(this.timerPromise);
+    this.triggered = true;
   }
 }
 
