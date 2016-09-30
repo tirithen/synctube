@@ -21,9 +21,8 @@ createChannelButton.style.display = 'none';
 
 youtubePlayerReady().then((youtubePlayer) => {
   const player = youtubePlayer('player');
-window.pl = player;
-  console.log(player);
-//  player.setVolume(100);
+
+  //player.setVolume(100);
 
   function getChannel() {
     return channelField.value;
@@ -48,12 +47,8 @@ window.pl = player;
       }
 
       const currentTime = Math.round(currentVideo.time / 1000);
-      if (currentTime) {
-        console.log('player.getCurrentTime', currentTime, Math.round(player.getCurrentTime()));
-
-        if (currentTime !== Math.round(player.getCurrentTime())) {
-          player.seekTo(currentTime, true);
-        }
+      if (currentTime && currentTime !== Math.round(player.getCurrentTime())) {
+        player.seekTo(currentTime, true);
       }
 
       if (currentVideo.playing) {
@@ -68,7 +63,7 @@ window.pl = player;
     const channel = channelField.value;
     localStorage.setItem('channel', channel);
 
-    request(`/api/${channel}`, (error, response, body) => {
+    request(`/api/${channel}`, (error, response) => {
       channelSecretField.style.display = '';
 
       if (response.status === 404) {
