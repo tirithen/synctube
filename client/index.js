@@ -199,5 +199,5 @@ youtubePlayerReady().then((youtubePlayer) => {
     });
   });
 
-  setChannel(location.hash.replace('#', '') || localStorage.getItem('channel'));
+  setChannel(location.hash.replace('#', '') || localStorage.getItem('channel') || '');
 });
