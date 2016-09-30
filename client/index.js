@@ -20,9 +20,14 @@ playerPauseButton.style.display = 'none';
 
 youtubePlayerReady().then((youtubePlayer) => {
   const player = youtubePlayer('player');
+  let socket;
 
   function subscribeToChannel(channel) {
-    const socket = io(`/${channel}`);
+    if (socket && socket.disconnect) {
+      socket.disconnect();
+    }
+
+    socket = io(`/${channel}`);
     socket.on('sync', (currentVideo) => {
       const currentTime = Math.round((currentVideo.time || 0) / 1000);
 
