@@ -21,16 +21,12 @@ playerPauseButton.style.display = 'none';
 youtubePlayerReady().then((youtubePlayer) => {
   const player = youtubePlayer('player');
 
-  //player.setVolume(100);
-
   function subscribeToChannel(channel) {
     const socket = io(`/${channel}`);
     socket.on('sync', (currentVideo) => {
-      console.log('currentVideo', currentVideo);
       const currentTime = Math.round((currentVideo.time || 0) / 1000);
 
       if (player.currentVideoId !== currentVideo.id) {
-        console.log('change video');
         player.loadVideoById({
           videoId: currentVideo.id,
           suggestedQuality: 'small',
