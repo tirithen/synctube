@@ -45,9 +45,6 @@ httpServer.post('/api/pause', hasValidSecret, (request, response) => {
 
 setInterval(() => {
   const status = youTubeVideo.getStatus();
-  if (youTubeVideo.loaded) {
-    youTubeVideo.play();
-  }
 
   if (status) {
     console.log('Sending status', status);
