@@ -49,6 +49,8 @@ youtubePlayerReady().then((youtubePlayer) => {
       } else {
         player.stopVideo();
       }
+
+      console.log('Status', currentVideo);
     });
   }
 
