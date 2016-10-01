@@ -198,7 +198,12 @@ class YoutubePlaylist {
 
   setCurrentVideo(videoId) {
     this.pause();
+console.log('YoutubePlaylist.setCurrentVideo', videoId, this.list.has(videoId));
 
+this.list.forEach((video, id) => {
+  console.log('video', video);
+});
+console.log('after loop', this.list.length);
     if (this.list.has(videoId)) {
       this.currentVideo = videoId;
     } else {
@@ -213,7 +218,6 @@ class YoutubePlaylist {
 
   getCurrentVideoStatus() {
     let result;
-
     if (this.list.has(this.currentVideo)) {
       const video = this.list.get(this.currentVideo);
       const timer = this.currentVideoTimer;
@@ -228,13 +232,15 @@ class YoutubePlaylist {
         playing: this.playing
       };
     }
-
+console.log('YoutubePlaylist.getCurrentVideoStatus', result, this.currentVideo);
     return result;
   }
 
   setCurrentVideoRemaining(remaining) {
+console.log('setCurrentVideoRemaining', remaining);
     if (this.currentVideoTimer) {
-      this.currentVideoTimer.setRemaining(remaining);
+      this.currentVideoTimer.destroy();
+      this.currentVideoTimer = new Timer(remaining);
     }
   }
 

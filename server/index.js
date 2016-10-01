@@ -23,6 +23,7 @@ channelsCache.get('channels').then((cachedChannels) => {
   console.log(`Found ${numberOfChannels} channels in cache`);
 
   if (cachedChannels) {
+console.log('cachedChannels', cachedChannels);
     cachedChannels.forEach((cachedChannel) => {
       try {
         const channel = new Channel(
@@ -39,6 +40,9 @@ channelsCache.get('channels').then((cachedChannels) => {
             channel.play();
           }
         }
+
+        channel.setCurrentVideo('k-INUzgV_SY');
+        channel.play();
 
         channels.set(cachedChannel.id, channel);
       } catch (error) {
@@ -60,7 +64,7 @@ function saveChannelsToCache() {
     });
   });
 
-  return channelsCache.set('channels', channelsCacheData);
+  channelsCache.set('channels', channelsCacheData);
 }
 
 setInterval(saveChannelsToCache, 10 * 1000);

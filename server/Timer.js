@@ -12,41 +12,30 @@ class Timer extends EventEmitter {
   }
 
   getRemaining() {
-    console.log(this.timeout, Date.now(), this.started, this.resumeAt);
-
-    if (this.started) {
-      if (!this.running && typeof this.resumeAt === 'number') {
-        return this.resumeAt;
-      } else {
-        return this.timeout - (Date.now() - this.started);
-      }
-    } else {
+    if (!this.started) {
       return this.timeout;
     }
-  }
 
-  setRemaining(remaining) {
-    this.started = Date.now();
-    if (this.running) {
-      this.pause();
-      this.resumeAt = remaining;
-      this.start();
-    } else {
-      this.resumeAt = remaining;
+    if (!this.running) {
+      return this.resumeAt || 0;
     }
+
+    return this.timeout - (Date.now() - this.started);
   }
 
   triggerAlarm() {
-    this.pause();
+    this.alarmTriggered = true;
+    clearTimeout(this.timer);
+    delete this.timer;
+    delete this.running;
     this.emit('alarm');
-console.log('triggerAlarm', this);
   }
 
   start() {
+    let remaining = 0;
+
     if (!this.running) {
       this.running = true;
-
-      let remaining = 0;
 
       if (this.resumeAt) {
         remaining = this.resumeAt;
@@ -64,17 +53,20 @@ console.log('triggerAlarm', this);
   }
 
   pause() {
+    clearTimeout(this.timer);
+    delete this.timer;
+
     if (this.running) {
-      this.running = false;
-      clearTimeout(this.timer);
       this.resumeAt = this.getRemaining();
       if (this.resumeAt < 0) {
         this.resumeAt = 0;
       }
+      delete this.running;
     }
   }
 
   reset() {
+    delete this.alarmTriggered;
     delete this.resumeAt;
     clearTimeout(this.timer);
     delete this.timer;

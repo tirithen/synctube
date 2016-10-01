@@ -16,6 +16,7 @@ class Channel {
       const status = this.playlist.getCurrentVideoStatus();
 
       if (status) {
+        console.log(`Channel ${this.id} emitting status`, status);
         this.socketNamespace.emit('sync', status);
       }
     }, SYNC_INTERVAL);
