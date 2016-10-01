@@ -178,7 +178,6 @@ class YoutubePlaylist {
           this.currentVideoTimer.on('alarm', () => {
             const nextVideo = this.getNextVideo(video.id);
             this.setCurrentVideo(nextVideo ? nextVideo.id : undefined);
-            this.pause();
             this.play();
           });
         }
