@@ -83,9 +83,13 @@ class YouTubeVideo {
   play() {
     if (!this.playing) {
       this.playing = true;
-console.log('now playing');
+
       if (!this.timer) {
         this.timer = new Timer(this.duration);
+        this.timer.on('alarm', () => {
+          this.timer.reset();
+          this.timer.start();
+        });
       }
 
       this.timer.start();
