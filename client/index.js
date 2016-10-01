@@ -4,97 +4,43 @@ const io = require('socket.io-client');
 const request = require('browser-request');
 const youtubePlayerReady = require('./youtubePlayer');
 
-const channelField = document.getElementById('channel-id');
 const channelSecretField = document.getElementById('channel-secret');
-const channelYoutubeField = document.getElementById('channel-youtube-playlist-id');
-const createChannelButton = document.getElementById('create-channel');
 const messageElement = document.getElementById('message');
 const playerPlayButton = document.getElementById('player-play');
 const playerPauseButton = document.getElementById('player-pause');
 
 messageElement.style.display = 'none';
-channelYoutubeField.style.display = 'none';
-createChannelButton.style.display = 'none';
 playerPlayButton.style.display = 'none';
 playerPauseButton.style.display = 'none';
 
 youtubePlayerReady().then((youtubePlayer) => {
   const player = youtubePlayer('player');
-  let socket;
+console.log('hej hopo');
+  const socket = io('/video');
+  console.log('socket', socket.on);
+  socket.on('sync', (videoData) => {
+    console.log('sync', videoData);
+    const currentTime = Math.round((videoData.time || 0) / 1000);
 
-  function subscribeToChannel(channel) {
-    if (socket && socket.disconnect) {
-      socket.disconnect();
-    }
-
-    socket = io(`/${channel}`);
-    socket.on('sync', (currentVideo) => {
-      const currentTime = Math.round((currentVideo.time || 0) / 1000);
-
-      if (player.currentVideoId !== currentVideo.id) {
-        player.loadVideoById({
-          videoId: currentVideo.id,
-          suggestedQuality: 'small',
-          startSeconds: currentTime
-        });
-        player.currentVideoId = currentVideo.id;
-      }
-
-      if (currentTime && currentTime !== Math.round(player.getCurrentTime())) {
-        player.seekTo(currentTime, true);
-      }
-
-      if (currentVideo.playing) {
-        player.playVideo();
-      } else {
-        player.stopVideo();
-      }
-
-      console.log('Status', currentVideo);
-    });
-  }
-
-  function getChannel() {
-    return channelField.value;
-  }
-
-  function setChannel(channel) {
-    if (channelField.value !== channel) {
-      channelField.value = channel;
-      localStorage.setItem('channel', channel);
-      subscribeToChannel(channel);
-    }
-  }
-
-  let channelFieldUpdatedTimer;
-  function channelFieldUpdated() {
-    clearTimeout(channelFieldUpdatedTimer);
-    channelFieldUpdatedTimer = setTimeout(() => {
-      const channel = channelField.value;
-      setChannel(channel);
-
-      request(`/api/${channel}`, (error, response) => {
-        if (response.status === 404) {
-          messageElement.innerHTML = 'The channel could not be found, fill in ' +
-                                     'the details and click the button to create.';
-          channelYoutubeField.style.display = '';
-          createChannelButton.style.display = '';
-          messageElement.style.display = '';
-        } else if (response.status === 200) {
-          createChannelButton.style.display = 'none';
-          messageElement.style.display = 'none';
-        } else {
-          messageElement.innerHTML = 'An unknown error has occurred, ' +
-                                     'try again later.';
-          createChannelButton.style.display = 'none';
-          messageElement.style.display = '';
-        }
+    if (player.videoDataId !== videoData.id) {
+      player.loadVideoById({
+        videoId: videoData.id,
+        suggestedQuality: 'small',
+        startSeconds: currentTime
       });
-    }, 500);
-  }
-  channelField.addEventListener('change', channelFieldUpdated);
-  channelField.addEventListener('blur', channelFieldUpdated);
-  channelField.addEventListener('keyup', channelFieldUpdated);
+      player.videoDataId = videoData.id;
+    }
+
+    if (currentTime && currentTime !== Math.round(player.getCurrentTime())) {
+      player.seekTo(currentTime, true);
+    }
+
+    if (videoData.playing) {
+      player.playVideo();
+    } else {
+      player.stopVideo();
+    }
+  });
 
   function channelSecretFieldUpdated() {
     if (channelSecretField.value && channelSecretField.value.trim()) {
@@ -116,14 +62,14 @@ youtubePlayerReady().then((youtubePlayer) => {
 
     const options = {
       body: parameters,
-      url: `/api/${getChannel()}/play`,
+      url: '/api/play',
       method: 'POST',
       json: true
     };
 
     request(options, (error, response) => {
       if (response.status === 401) {
-        messageElement.innerHTML = 'Invalid secret for this channel';
+        messageElement.innerHTML = 'Invalid secret';
         messageElement.style.display = '';
       } else if (response.status !== 200) {
         messageElement.innerHTML = 'An unknown error has occurred, ' +
@@ -142,14 +88,14 @@ youtubePlayerReady().then((youtubePlayer) => {
 
     const options = {
       body: parameters,
-      url: `/api/${getChannel()}/pause`,
+      url: '/api/pause',
       method: 'POST',
       json: true
     };
 
     request(options, (error, response) => {
       if (response.status === 401) {
-        messageElement.innerHTML = 'Invalid secret for this channel';
+        messageElement.innerHTML = 'Invalid secret';
         messageElement.style.display = '';
       } else if (response.status !== 200) {
         messageElement.innerHTML = 'An unknown error has occurred, ' +
@@ -160,47 +106,4 @@ youtubePlayerReady().then((youtubePlayer) => {
       }
     });
   });
-
-  createChannelButton.addEventListener('click', () => {
-    const parameters = {
-      secret: channelSecretField.value,
-      playlistId: channelYoutubeField.value
-    };
-
-    const options = {
-      body: parameters,
-      url: `/api/${getChannel()}`,
-      method: 'POST',
-      json: true
-    };
-
-    request(options, (error, response, body) => {
-      if (response.status === 200) {
-        messageElement.style.display = 'none';
-        createChannelButton.style.display = 'none';
-        channelYoutubeField.style.display = 'none';
-        channelYoutubeField.value = '';
-        channelSecretFieldUpdated();
-        subscribeToChannel(getChannel());
-      } else if (response.status === 409) {
-        messageElement.innerHTML = body;
-        createChannelButton.style.display = '';
-        channelYoutubeField.style.display = '';
-        messageElement.style.display = '';
-      } else if (response.status === 400) {
-        messageElement.innerHTML = body;
-        createChannelButton.style.display = '';
-        channelYoutubeField.style.display = '';
-        messageElement.style.display = '';
-      } else {
-        messageElement.innerHTML = 'An unknown error has occurred, ' +
-                                   'try again later.';
-        createChannelButton.style.display = '';
-        channelYoutubeField.style.display = '';
-        messageElement.style.display = '';
-      }
-    });
-  });
-
-  setChannel(location.hash.replace('#', '') || localStorage.getItem('channel') || '');
 });

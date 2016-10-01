@@ -2,72 +2,19 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const io = require('socket.io');
-const Cache = require('promised-cache');
+
+const YouTubeVideo = require('./YouTubeVideo');
 
 const httpServer = express();
 const server = http.createServer(httpServer);
 const socketServer = io(server);
 
-const youTubeApiKey = process.env.YOUTUBE_API_KEY;
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const YOUTUBE_VIDEO_ID = process.env.YOUTUBE_VIDEO_ID;
+const SECRET = process.env.SECRET;
 const httpPort = process.env.PORT || 3000;
-const channels = new Map();
 
-const Channel = require('./Channel');
-const YoutubePlaylist = require('./YoutubePlaylist');
-
-const channelsCache = new Cache('cache/channels', 1000 * 3600 * 30);
-channelsCache.get('channels').then((cachedChannels) => {
-  const numberOfChannels = cachedChannels && cachedChannels.length ?
-                              cachedChannels.length : 0;
-
-  console.log(`Found ${numberOfChannels} channels in cache`);
-
-  if (cachedChannels) {
-console.log('cachedChannels', cachedChannels);
-    cachedChannels.forEach((cachedChannel) => {
-      try {
-        const channel = new Channel(
-          cachedChannel.id,
-          new YoutubePlaylist(youTubeApiKey, cachedChannel.playlistId),
-          cachedChannel.secret,
-          socketServer.of(`/${cachedChannel.id}`)
-        );
-
-        if (cachedChannel.status) {
-          channel.setCurrentVideo(cachedChannel.status.id);
-          channel.setCurrentVideoRemaining(cachedChannel.status.remaining);
-          if (cachedChannel.status.playing) {
-            channel.play();
-          }
-        }
-
-        channel.setCurrentVideo('k-INUzgV_SY');
-        channel.play();
-
-        channels.set(cachedChannel.id, channel);
-      } catch (error) {
-        console.error(error);
-      }
-    });
-  }
-});
-
-function saveChannelsToCache() {
-  const channelsCacheData = [];
-
-  channels.forEach((channel) => {
-    channelsCacheData.push({
-      id: channel.id,
-      playlistId: channel.playlist.id,
-      secret: channel.secret,
-      status: channel.getCurrentVideoStatus()
-    });
-  });
-
-  channelsCache.set('channels', channelsCacheData);
-}
-
-setInterval(saveChannelsToCache, 10 * 1000);
+const youTubeVideo = new YouTubeVideo(YOUTUBE_VIDEO_ID, YOUTUBE_API_KEY);
 
 httpServer.use(express.static(`${__dirname}/../build`));
 const jsonOptions = {
@@ -77,85 +24,33 @@ httpServer.use(bodyParser.json(jsonOptions));
 server.listen(httpPort);
 
 function hasValidSecret(request, response, next) {
-  const channelId = request.params.channel;
   const secret = request.body.secret;
-  const channel = channels.get(channelId);
 
-  if (channel && channel.confirmSecret(secret)) {
+  if (secret === SECRET) {
     next();
   } else {
     response.status(401).send('Invalid or missing secret');
   }
 }
 
-httpServer.get('/api/:channel', (request, response) => {
-  const channel = channels.get(request.params.channel);
-
-  if (channel) {
-    response.json(channel);
-  } else {
-    response.status(404).send('Not Found');
-  }
+httpServer.post('/api/play', hasValidSecret, (request, response) => {
+  youTubeVideo.play();
+  response.json(true);
 });
 
-httpServer.post('/api/:channel', (request, response) => {
-  const channelId = request.params.channel;
-  const playlistId = request.body.playlistId;
-  const secret = request.body.secret;
-
-  const channel = channels.get(channelId);
-
-  if (channel) {
-    response.status(409).send('Channel already exists');
-  } else if (channelId && playlistId && secret) {
-    channels.set(channelId, new Channel(
-      channelId,
-      new YoutubePlaylist(youTubeApiKey, playlistId),
-      secret,
-      socketServer.of(`/${channelId}`)
-    ));
-
-    response.status(200).send();
-  } else {
-    response.status(400).send(
-      'Make sure that the manditory parameters playlistId and secret are passed'
-    );
-  }
+httpServer.post('/api/pause', hasValidSecret, (request, response) => {
+  youTubeVideo.pause();
+  response.json(true);
 });
 
-httpServer.post('/api/:channel/play', hasValidSecret, (request, response) => {
-  const channelId = request.params.channel;
-
-  const channel = channels.get(channelId);
-
-  if (channel) {
-    channel.play();
-    response.send();
-  } else {
-    response.status(404).send('Not Found');
+setInterval(() => {
+  const status = youTubeVideo.getStatus();
+  if (youTubeVideo.loaded) {
+    youTubeVideo.play();
   }
-});
 
-httpServer.post('/api/:channel/pause', hasValidSecret, (request, response) => {
-  const channelId = request.params.channel;
-
-  const channel = channels.get(channelId);
-
-  if (channel) {
-    channel.pause();
-    response.send();
-  } else {
-    response.status(404).send('Not Found');
+  if (status) {
+    console.log('Sending status', status);
+    socketServer.of('/video').emit('sync', status);
   }
-});
-
-httpServer.delete('/api/:channel', hasValidSecret, (request, response) => {
-  const channel = channels.get(request.params.channel);
-
-  if (channel) {
-    channels.delete(channel.id);
-    response.send();
-  } else {
-    response.status(404).send('Not Found');
-  }
-});
+}, 3000);
