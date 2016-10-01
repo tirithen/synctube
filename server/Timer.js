@@ -12,10 +12,21 @@ class Timer extends EventEmitter {
   }
 
   getRemaining() {
-    return this.timeout - (Date.now() - this.started);
+    console.log(this.timeout, Date.now(), this.started, this.resumeAt);
+
+    if (this.started) {
+      if (!this.running && typeof this.resumeAt === 'number') {
+        return this.resumeAt;
+      } else {
+        return this.timeout - (Date.now() - this.started);
+      }
+    } else {
+      return this.timeout;
+    }
   }
 
   setRemaining(remaining) {
+    this.started = Date.now();
     if (this.running) {
       this.pause();
       this.resumeAt = remaining;
@@ -28,6 +39,7 @@ class Timer extends EventEmitter {
   triggerAlarm() {
     this.pause();
     this.emit('alarm');
+console.log('triggerAlarm', this);
   }
 
   start() {
@@ -56,12 +68,18 @@ class Timer extends EventEmitter {
       this.running = false;
       clearTimeout(this.timer);
       this.resumeAt = this.getRemaining();
+      if (this.resumeAt < 0) {
+        this.resumeAt = 0;
+      }
     }
   }
 
   reset() {
-    this.pause();
     delete this.resumeAt;
+    clearTimeout(this.timer);
+    delete this.timer;
+    delete this.running;
+    delete this.started;
   }
 
   destroy() {
